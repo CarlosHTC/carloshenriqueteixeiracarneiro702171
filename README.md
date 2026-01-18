@@ -51,7 +51,9 @@ cd SELETIVO_CONJUNTO-001-2026
 # Subir API + PostgreSQL
 docker compose up --build
 
-# Após a inicialização:
+```
+
+### Após a inicialização:
 
 API: http://localhost:8083
 
