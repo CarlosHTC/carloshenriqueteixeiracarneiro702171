@@ -28,7 +28,7 @@ No estado atual, o projeto contempla:
 - **Back-end:** Spring Boot 4.0.1 (Java 21)
 - **Segurança:** Spring Security (HTTP Basic temporário)
 - **Banco de Dados:** PostgreSQL
-- **Migração de Banco:** Flyway (configurado, sem migrations ainda)
+- **Migração de Banco:** Flyway (**V1 aplicada**)
 - **Documentação:** OpenAPI / Swagger
 - **Observabilidade:** Spring Boot Actuator
 - **Containerização:** Docker + Docker Compose
@@ -53,10 +53,12 @@ docker compose up --build
 
 ```
 
+---
+
 ### Após a inicialização:
 
-API: http://localhost:8083
+- **API:** http://localhost:8083
 
-Swagger: http://localhost:8083/swagger
+- **Swagger:** http://localhost:8083/swagger
 
-Health Check: http://localhost:8083/actuator/health
+- **Health Check:** http://localhost:8083/actuator/health

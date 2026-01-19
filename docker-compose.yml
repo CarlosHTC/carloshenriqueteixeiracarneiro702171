@@ -23,6 +23,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - music-management-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   api:
     build:
@@ -31,13 +36,14 @@ services:
     container_name: api-music-management
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE_ACTIVE}
     ports:
-      - "${API_PORT}:8080"
+      - "${API_PORT}:8083"
     networks:
       - music-management-network
