@@ -32,11 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-### Env ###
-.env
-.env.*
-!.env.example
-
 ### Logs ###
 logs/
 *.log
