@@ -200,6 +200,89 @@ A migration de seed insere artistas e álbuns iniciais para testes manuais, faci
 
 ---
 
+## 🖥️ Funcionamento da Aplicação
+
+### 🔐 Tela de Login
+
+A tela de login é o ponto de entrada da aplicação. Para acessar o sistema, utilize o usuário administrativo configurado diretamente nas propriedades da API:
+
+* **Usuário:** `admin`
+* **Senha:** `admin`
+
+Após a autenticação bem-sucedida, o front-end recebe um **JWT (Access Token)** com validade de 5 minutos e passa a gerenciar automaticamente a renovação da sessão via **Refresh Token**, sem necessidade de nova interação do usuário.
+
+---
+
+### 🏠 Tela Inicial – Listagem de Artistas
+
+A tela inicial apresenta a listagem dos artistas cadastrados no sistema e concentra as principais funcionalidades de navegação e consulta.
+
+**Funcionalidades principais:**
+
+* 🔍 **Busca por nome do artista**.
+* 🔽 **Ordenação alfabética** pelo nome do artista, em ordem **crescente ou decrescente**.
+* 🗂️ **Alternância de visualização**:
+
+  * **Grade (cards)**: exibe imagem do artista, nome, tipo (Solo, Banda, DJ) e quantidade de álbuns.
+  * **Tabela**: exibe os mesmos dados em formato tabular responsivo.
+* 📄 **Paginação**, integrada ao backend.
+
+**Filtro avançado:**
+
+* 🎚️ **Filtro por tipo de artista**.
+* 🌎 **Filtro por regional**, seguindo a regra de negócio:
+
+  * Ao selecionar uma regional, a listagem exibirá:
+
+    * Todos os artistas **sem nenhuma regional vinculada**;
+    * E todos os artistas **vinculados à regional selecionada**.
+
+Essa abordagem garante que artistas de abrangência geral continuem visíveis, enquanto restringe corretamente os artistas regionais.
+
+**Gestão de artistas:**
+
+* ➕ **Cadastrar novo artista**, incluindo:
+
+  * Nome
+  * Tipo (Solo, Banda, DJ)
+  * Vínculo com uma ou mais regionais
+  * Upload opcional da **foto do artista** (armazenada no MinIO)
+* ✏️ **Editar artista existente**, permitindo alteração dos dados e da imagem associada.
+
+---
+
+### 🎤 Tela de Detalhes do Artista
+
+Ao selecionar um artista na listagem, o usuário é direcionado para a tela de detalhes, que apresenta informações completas do artista e sua discografia.
+
+**Funcionalidades:**
+
+* 📌 Exibição dos dados do artista:
+
+  * Nome
+  * Tipo
+  * Quantidade de álbuns
+  * Foto (quando cadastrada)
+
+* 💿 **Listagem dos álbuns do artista**, exibidos em formato de cards, contendo:
+
+  * Capa do álbum
+  * Título
+  * Gêneros associados
+
+* ➕ **Cadastro de novos álbuns**, permitindo:
+
+  * Definição do título
+  * Ano de lançamento
+  * Associação de um ou mais gêneros
+  * Upload da **capa do álbum** (armazenada no MinIO)
+
+* ✏️ **Edição de álbuns existentes**, com atualização dos metadados e das capas.
+
+Caso o artista ainda não possua álbuns cadastrados, a interface exibe uma **mensagem informativa**, orientando o usuário a iniciar o cadastro.
+
+---
+
 ## 📝 Observações Finais
 
 Para este projeto foi usado as bibliotecas do Prime (PrimeReact, PrimeFlex e PrimeIcons) no lugar do Tailwind, por se tratar de uma biblioteca que dispõe de componentes pre estilizados com funcionalidades de UI já integradas, permitindo um foco maior na logica da aplicação.
