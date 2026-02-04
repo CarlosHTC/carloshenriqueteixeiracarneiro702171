@@ -60,7 +60,7 @@ export default function LoginPage() {
         <form onSubmit={onSubmit} className="flex flex-column gap-3">
           {errorMsg ? <Message severity="error" text={errorMsg} /> : null}
 
-          <div>
+          <div className="w-full">
             <label className="block mb-2" style={{ fontWeight: 600 }}>
               Usuário
             </label>
@@ -69,11 +69,11 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Digite seu usuário"
               autoComplete="username"
-              style={{ width: "100%" }}
+              className="w-full"
             />
           </div>
 
-          <div>
+          <div className="w-full">
             <label className="block mb-2" style={{ fontWeight: 600 }}>
               Senha
             </label>
@@ -83,9 +83,7 @@ export default function LoginPage() {
               placeholder="Digite sua senha"
               toggleMask
               feedback={false}
-              // inputStyle={{ width: "100%" }}
-              // style={{ width: "100%" }}
-              className="col-12"
+              className="p-0"
               autoComplete="current-password"
             />
           </div>
