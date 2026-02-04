@@ -38,4 +38,10 @@ public class AlbumCapaControllerV1 {
         albumCapaService.remover(albumId, capaId);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{capaId}/principal")
+    public ResponseEntity<Void> definirPrincipal(@PathVariable Long albumId, @PathVariable Long capaId) {
+        albumCapaService.definirPrincipal(albumId, capaId);
+        return ResponseEntity.noContent().build();
+    }
 }

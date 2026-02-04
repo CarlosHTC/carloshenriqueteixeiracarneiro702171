@@ -1,9 +1,10 @@
 import { BehaviorSubject } from "rxjs";
 import type { IArtista } from "../../../shared/types/IArtista";
 import type { IAlbum, IAlbumComCapa } from "../../../shared/types/IAlbum";
+import type { AlbumCapaDraft } from "../../albuns/types";
 import { atualizarArtista, buscarArtistaPorId, removerArtista } from "../artistas.api";
 import { buscarAlbumPorId, atualizarAlbum, criarAlbum, listarAlbunsPorArtista, removerAlbum } from "../../albuns/albuns.api";
-import { uploadCapas } from "../../albuns/album-capas.api";
+import { definirCapaPrincipal, removerCapa, uploadCapas } from "../../albuns/album-capas.api";
 import { uploadFotoArtista } from "../artista-foto.api";
 
 export interface ArtistaDetalheState {
@@ -144,7 +145,7 @@ class ArtistaDetalheFacade {
 
     async saveAlbum(
         artistaId: number,
-        data: { id?: number; nome: string; generoIds: number[]; coverFile?: File | null; coverPreview?: string }
+        data: { id?: number; nome: string; generoIds: number[]; capas: AlbumCapaDraft[]; removedCapaIds: number[] }
     ) {
         if (!data.nome) return false;
 
@@ -166,24 +167,60 @@ class ArtistaDetalheFacade {
                 });
             }
 
-            if (data.coverFile && album.id) {
-                try {
-                    const capas = await uploadCapas(album.id, [data.coverFile]);
-                    const capasAdaptadas = capas.map((c) => ({
-                        id: c.id,
-                        album: album.id,
-                        objectKey: c.url,
-                        fileName: c.fileName,
-                        contentType: c.contentType,
-                        sizeBytes: c.sizeBytes,
-                        principal: c.principal,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        version: 0,
-                    }));
-                    album = { ...album, capas: capasAdaptadas };
-                } catch (err) {
-                    console.error("Erro ao fazer upload da capa:", err);
+            if (album.id) {
+                const removidas = data.removedCapaIds ?? [];
+                if (removidas.length > 0) {
+                    await Promise.all(
+                        removidas.map(async (id) => {
+                            try {
+                                await removerCapa(album.id!, id);
+                            } catch (err) {
+                                console.error("Erro ao remover capa:", err);
+                            }
+                        })
+                    );
+                }
+
+                const novas = (data.capas ?? []).filter((c) => c.file);
+                let uploadResponses: Awaited<ReturnType<typeof uploadCapas>> = [];
+                if (novas.length > 0) {
+                    try {
+                        uploadResponses = await uploadCapas(
+                            album.id,
+                            novas.map((c) => c.file as File)
+                        );
+                    } catch (err) {
+                        console.error("Erro ao fazer upload da capa:", err);
+                    }
+                }
+
+                const principalSelecionada = (data.capas ?? []).find((c) => c.principal);
+                let principalId: number | null = null;
+
+                if (principalSelecionada?.id) {
+                    principalId = principalSelecionada.id;
+                } else if (principalSelecionada?.localId && novas.length > 0) {
+                    const index = novas.findIndex((c) => c.localId === principalSelecionada.localId);
+                    if (index >= 0 && uploadResponses[index]) {
+                        principalId = uploadResponses[index].id;
+                    }
+                }
+
+                if (!principalId && (data.capas ?? []).length > 0) {
+                    const existente = (data.capas ?? []).find((c) => c.id);
+                    if (existente?.id) {
+                        principalId = existente.id;
+                    } else if (uploadResponses[0]) {
+                        principalId = uploadResponses[0].id;
+                    }
+                }
+
+                if (principalId) {
+                    try {
+                        await definirCapaPrincipal(album.id, principalId);
+                    } catch (err) {
+                        console.error("Erro ao definir capa principal:", err);
+                    }
                 }
             }
 

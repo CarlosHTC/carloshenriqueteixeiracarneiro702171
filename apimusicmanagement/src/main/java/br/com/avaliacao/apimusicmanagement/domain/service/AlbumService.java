@@ -128,8 +128,8 @@ public class AlbumService {
         if (albumIds == null || albumIds.isEmpty()) {
             return Map.of();
         }
-        return albumCapaRepository.findLatestByAlbumIds(albumIds).stream()
-                .collect(Collectors.toMap(capa -> capa.getAlbum().getId(), Function.identity()));
+        return albumCapaRepository.findPrincipaisByAlbumIds(albumIds).stream()
+                .collect(Collectors.toMap(capa -> capa.getAlbum().getId(), Function.identity(), (a, b) -> a));
     }
 
     private Set<Genero> resolverGeneros(Set<Long> generoIds) {

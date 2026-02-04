@@ -5,6 +5,7 @@ vi.mock("../../services/http/axios", () => ({
     post: vi.fn(),
     get: vi.fn(),
     delete: vi.fn(),
+    patch: vi.fn(),
   },
 }));
 

@@ -67,7 +67,7 @@ class AlbumServiceTest {
 
         ReflectionTestUtils.setField(capa, "id", 99L);
 
-        when(albumCapaRepository.findLatestByAlbumIds(Set.of(10L)))
+        when(albumCapaRepository.findPrincipaisByAlbumIds(Set.of(10L)))
                 .thenReturn(List.of(capa));
 
         when(minioProperties.getPresignExpirationMinutes()).thenReturn(30);
@@ -81,7 +81,7 @@ class AlbumServiceTest {
         Page<AlbumListResponse> result = albumService.listar(null, pageable);
 
         assertEquals(1, result.getTotalElements());
-        verify(albumCapaRepository).findLatestByAlbumIds(Set.of(10L));
+        verify(albumCapaRepository).findPrincipaisByAlbumIds(Set.of(10L));
         verify(albumMapper).toListResponse(eq(album),
                 argThat(c -> c != null && "http://presigned".equals(c.url())));
     }

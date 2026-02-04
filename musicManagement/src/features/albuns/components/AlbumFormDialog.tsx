@@ -7,6 +7,8 @@ import { MultiSelect } from "primereact/multiselect";
 import { FileUpload } from "primereact/fileupload";
 import type { IAlbum, IArtista, IGenero } from "../../../shared/types";
 import { listarGeneros } from "../../generos/generos.api";
+import { listarCapas } from "../album-capas.api";
+import type { AlbumCapaDraft } from "../types";
 
 export interface AlbumFormDialogProps {
     visible: boolean;
@@ -15,7 +17,16 @@ export interface AlbumFormDialogProps {
     artistas?: IArtista[];
     generos?: IGenero[];
     onHide: () => void;
-    onSave: (artistaId: number, data: { id?: number; nome: string; generoIds: number[]; coverFile?: File | null; coverPreview?: string }) => void;
+    onSave: (
+        artistaId: number,
+        data: {
+            id?: number;
+            nome: string;
+            generoIds: number[];
+            capas: AlbumCapaDraft[];
+            removedCapaIds: number[];
+        }
+    ) => void;
 }
 
 function showInvalidImageToast() {
@@ -34,8 +45,43 @@ function showInvalidImageToast() {
 const MAX_IMAGE_MB = 10;
 const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 
+function showSizeLimitToast() {
+    window.dispatchEvent(
+        new CustomEvent("toast:show", {
+            detail: {
+                severity: "warn",
+                summary: "Limite excedido",
+                detail: `O total de capas não pode ultrapassar ${MAX_IMAGE_MB}MB.`,
+                life: 3500,
+            },
+        })
+    );
+}
+
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 75 }, (_, i) => currentYear - i);
+
+function createLocalId() {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+        return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function readFileAsDataUrl(file: File) {
+    return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
+
+function formatBytes(bytes: number) {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(2)} MB`;
+}
 
 export default function AlbumFormDialog({
     visible,
@@ -52,8 +98,8 @@ export default function AlbumFormDialog({
     const [nome, setNome] = useState("");
     const [anoLancamento, setAnoLancamento] = useState<number | null>(null);
     const [generoIds, setGeneroIds] = useState<number[]>([]);
-    const [coverPreview, setCoverPreview] = useState<string>("");
-    const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [capas, setCapas] = useState<AlbumCapaDraft[]>([]);
+    const [initialCapaIds, setInitialCapaIds] = useState<number[]>([]);
     const [listaGeneros, setListaGeneros] = useState<IGenero[]>([]);
     const fileUploadRef = useRef<FileUpload>(null);
 
@@ -67,8 +113,44 @@ export default function AlbumFormDialog({
         setNome(album?.nome ?? "");
         setAnoLancamento(null);
         setGeneroIds(album?.generos?.map((g) => g.id) ?? []);
-        setCoverPreview(album?.capas?.[0]?.objectKey ?? "");
-        setCoverFile(null);
+        if (!album?.id) {
+            setCapas([]);
+            setInitialCapaIds([]);
+            return;
+        }
+
+        let cancelled = false;
+        const loadCapas = async () => {
+            try {
+                const data = await listarCapas(album.id);
+                if (cancelled) return;
+                const draft = data.map((c) => ({
+                    localId: `existing-${c.id}`,
+                    id: c.id,
+                    previewUrl: c.url,
+                    fileName: c.fileName,
+                    contentType: c.contentType,
+                    sizeBytes: c.sizeBytes,
+                    principal: c.principal,
+                    source: "existing" as const,
+                }));
+                const hasPrincipal = draft.some((c) => c.principal);
+                if (!hasPrincipal && draft.length > 0) {
+                    draft[0].principal = true;
+                }
+                setCapas(draft);
+                setInitialCapaIds(draft.map((c) => c.id!).filter((id) => Number.isFinite(id)));
+            } catch {
+                if (!cancelled) {
+                    setCapas([]);
+                    setInitialCapaIds([]);
+                }
+            }
+        };
+        void loadCapas();
+        return () => {
+            cancelled = true;
+        };
     }, [visible, album, artista]);
 
     async function listaGenero() {
@@ -87,39 +169,101 @@ export default function AlbumFormDialog({
             setNome("");
             setAnoLancamento(null);
             setGeneroIds([]);
-            setCoverPreview("");
-            setCoverFile(null);
+            setCapas([]);
+            setInitialCapaIds([]);
             if (!artista) setSelectedArtistaId(null);
         }
     };
 
-    const handleFileSelect = (event: any) => {
-        const file = event.files?.[0];
-        if (!file) {
+    const handleFileSelect = async (event: any) => {
+        const files: File[] = Array.isArray(event?.files) ? event.files : [];
+        if (!files.length) {
             showInvalidImageToast();
             return;
         }
-        if (!file.type || !file.type.startsWith("image/")) {
+
+        const currentTotalBytes = capas.reduce(
+            (total, capa) => total + (capa.sizeBytes ?? capa.file?.size ?? 0),
+            0
+        );
+
+        const validFiles = files.filter((file) => {
+            if (!file.type || !file.type.startsWith("image/")) return false;
+            if (file.size > MAX_IMAGE_BYTES) return false;
+            return true;
+        });
+
+        if (validFiles.length !== files.length) {
             showInvalidImageToast();
+        }
+
+        if (!validFiles.length) {
             return;
         }
-        if (file.size > MAX_IMAGE_BYTES) {
-            showInvalidImageToast();
+
+        let runningTotal = currentTotalBytes;
+        const limitedFiles: File[] = [];
+        for (const file of validFiles) {
+            if (runningTotal + file.size > MAX_IMAGE_BYTES) {
+                break;
+            }
+            limitedFiles.push(file);
+            runningTotal += file.size;
+        }
+
+        if (limitedFiles.length !== validFiles.length) {
+            showSizeLimitToast();
+        }
+
+        if (!limitedFiles.length) {
             return;
         }
-        setCoverFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setCoverPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+
+        const previews = await Promise.all(
+            limitedFiles.map(async (file) => ({
+                localId: createLocalId(),
+                file,
+                previewUrl: await readFileAsDataUrl(file),
+                fileName: file.name,
+                contentType: file.type,
+                sizeBytes: file.size,
+                principal: false,
+                source: "new" as const,
+            }))
+        );
+
+        setCapas((prev) => {
+            const hasPrincipal = prev.some((c) => c.principal);
+            const merged = [...prev, ...previews];
+            if (!hasPrincipal && previews.length > 0) {
+                const firstNewIndex = prev.length;
+                return merged.map((c, idx) => ({ ...c, principal: idx === firstNewIndex }));
+            }
+            return merged;
+        });
+
         fileUploadRef.current?.clear();
     };
 
-    const handleRemoveImage = () => {
-        setCoverPreview("");
-        setCoverFile(null);
-        fileUploadRef.current?.clear();
+    const handleRemoveCapa = (localId: string) => {
+        setCapas((prev) => {
+            const next = prev.filter((c) => c.localId !== localId);
+            if (next.length === 0) return next;
+            const hasPrincipal = next.some((c) => c.principal);
+            if (!hasPrincipal) {
+                next[0] = { ...next[0], principal: true };
+            }
+            return next;
+        });
+    };
+
+    const definirPrincipal = (localId: string) => {
+        setCapas((prev) =>
+            prev.map((c) => ({
+                ...c,
+                principal: c.localId === localId,
+            }))
+        );
     };
 
     const handleSubmit = () => {
@@ -128,12 +272,21 @@ export default function AlbumFormDialog({
             return;
         }
 
+        let capasAtualizadas = capas;
+        if (capasAtualizadas.length > 0 && !capasAtualizadas.some((c) => c.principal)) {
+            capasAtualizadas = capasAtualizadas.map((c, idx) => ({ ...c, principal: idx === 0 }));
+            setCapas(capasAtualizadas);
+        }
+
+        const existentesIds = capasAtualizadas.map((c) => c.id).filter((id): id is number => typeof id === "number");
+        const removedCapaIds = initialCapaIds.filter((id) => !existentesIds.includes(id));
+
         onSave(artistaId, {
             id: album?.id,
             nome,
             generoIds,
-            coverFile,
-            coverPreview,
+            capas: capasAtualizadas,
+            removedCapaIds,
         });
     };
 
@@ -169,13 +322,20 @@ export default function AlbumFormDialog({
         value: year,
     }));
 
+    const totalCapasBytes = capas.reduce(
+        (total, capa) => total + (capa.sizeBytes ?? capa.file?.size ?? 0),
+        0
+    );
+    const totalCapasPercent = Math.min(100, (totalCapasBytes / MAX_IMAGE_BYTES) * 100);
+
     const footer = (
         <div className="flex justify-content-end gap-2">
-            <Button label="Cancelar" icon="pi pi-times" severity="secondary" onClick={onHide} />
+            <Button label="Cancelar" icon="pi pi-times" severity="danger" onClick={onHide} />
             <Button
                 label={isEditing ? "Salvar Alterações" : "Cadastrar Álbum"}
                 onClick={handleSubmit}
-                disabled={!nome || (!artista && !selectedArtistaId)}
+                disabled={!nome || !generoIds.length || !anoLancamento || (!artista && !selectedArtistaId)}
+                severity="success"
             />
         </div>
     );
@@ -208,54 +368,89 @@ export default function AlbumFormDialog({
                 )}
 
                 <div className="flex flex-column gap-2">
-                    <label className="text-sm font-medium">Capa do Álbum</label>
-                    <div className="flex align-items-center gap-4">
+                    <label className="text-sm font-medium">Capas do Álbum</label>
+                    <div className="flex flex-column gap-3">
                         <div
-                            className="relative"
+                            className="flex gap-3"
                             style={{
-                                width: 96,
-                                height: 96,
-                                borderRadius: 8,
-                                overflow: "hidden",
-                                background: "rgba(255,255,255,.04)",
-                                flexShrink: 0,
+                                overflowX: "auto",
+                                paddingBottom: 4,
+                                flexWrap: "wrap",
                             }}
                         >
-                            {coverPreview ? (
-                                <>
-                                    <img
-                                        src={coverPreview}
-                                        alt="Preview"
+                            {capas.length > 0 ? (
+                                capas.map((capa) => (
+                                    <div
+                                        key={capa.localId}
+                                        className="relative"
                                         style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "cover",
-                                        }}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleRemoveImage}
-                                        className="absolute"
-                                        style={{
-                                            right: 4,
-                                            top: 4,
-                                            borderRadius: "50%",
-                                            background: "rgba(0,0,0,.7)",
-                                            border: "none",
-                                            width: 24,
-                                            height: 24,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            cursor: "pointer",
-                                            color: "white",
+                                            width: 110,
+                                            borderRadius: 10,
+                                            overflow: "hidden",
+                                            background: "rgba(255,255,255,.04)",
+                                            border: capa.principal
+                                                ? "2px solid rgba(var(--primary-rgb), .7)"
+                                                : "1px solid rgba(255,255,255,.08)",
+                                            flexShrink: 0,
                                         }}
                                     >
-                                        <i className="pi pi-times" style={{ fontSize: 12 }} />
-                                    </button>
-                                </>
+                                        <div style={{ width: "100%", height: 110 }}>
+                                            <img
+                                                src={capa.previewUrl}
+                                                alt={capa.fileName || "Capa"}
+                                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                            />
+                                        </div>
+                                        <div
+                                            className="flex flex-column gap-2 p-2"
+                                            style={{ background: "rgba(0,0,0,.35)" }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => definirPrincipal(capa.localId)}
+                                                disabled={capa.principal}
+                                                className="w-full"
+                                                style={{
+                                                    border: "1px solid rgba(255,255,255,.2)",
+                                                    borderRadius: 8,
+                                                    background: capa.principal ? "rgba(var(--primary-rgb), .2)" : "transparent",
+                                                    color: "inherit",
+                                                    padding: "4px 6px",
+                                                    fontSize: 11,
+                                                    cursor: capa.principal ? "default" : "pointer",
+                                                }}
+                                            >
+                                                {capa.principal ? "Principal" : "Definir principal"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveCapa(capa.localId)}
+                                                className="w-full"
+                                                style={{
+                                                    border: "1px solid rgba(255,255,255,.2)",
+                                                    borderRadius: 8,
+                                                    background: "rgba(255,255,255,.06)",
+                                                    color: "inherit",
+                                                    padding: "4px 6px",
+                                                    fontSize: 11,
+                                                    cursor: "pointer",
+                                                }}
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
                             ) : (
-                                <div className="flex align-items-center justify-content-center h-full">
+                                <div
+                                    className="flex align-items-center justify-content-center"
+                                    style={{
+                                        width: 110,
+                                        height: 110,
+                                        borderRadius: 10,
+                                        background: "rgba(255,255,255,.04)",
+                                    }}
+                                >
                                     <i className="pi pi-image" style={{ fontSize: 24, opacity: 0.6 }} />
                                 </div>
                             )}
@@ -265,15 +460,36 @@ export default function AlbumFormDialog({
                                 ref={fileUploadRef}
                                 mode="basic"
                                 accept="image/*"
-                                chooseLabel="Selecionar Capa"
+                                chooseLabel="Selecionar Capas"
                                 onSelect={handleFileSelect}
                                 auto={false}
                                 customUpload
                                 uploadHandler={() => {}}
                                 style={{ width: "100%" }}
+                                multiple
                             />
+                            <div
+                                className="mt-2"
+                                style={{
+                                    height: 6,
+                                    borderRadius: 999,
+                                    background: "rgba(255,255,255,.08)",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        height: "100%",
+                                        width: `${totalCapasPercent}%`,
+                                        background: "rgba(var(--primary-rgb), .7)",
+                                    }}
+                                />
+                            </div>
+                            <div className="text-xs mt-1" style={{ opacity: 0.75 }}>
+                                {formatBytes(totalCapasBytes)} / {MAX_IMAGE_MB}MB
+                            </div>
                             <p className="text-xs mt-1" style={{ opacity: 0.75 }}>
-                                Capa do álbum via MinIO. Apenas arquivos de imagem. Max {MAX_IMAGE_MB}MB.
+                                Capas do álbum via MinIO. Apenas arquivos de imagem. Max {MAX_IMAGE_MB}MB.
                             </p>
                         </div>
                     </div>
@@ -306,6 +522,7 @@ export default function AlbumFormDialog({
                             onChange={(e) => setAnoLancamento(e.value)}
                             placeholder="Ano"
                             className="w-full"
+                            required
                         />
                     </div>
 
@@ -325,6 +542,7 @@ export default function AlbumFormDialog({
                             display="chip"
                             maxSelectedLabels={2}
                             closeIcon="pi pi-times"
+                            required
                         />
                     </div>
                 </div>

@@ -16,6 +16,8 @@ vi.mock("../../albuns/albuns.api", () => ({
 
 vi.mock("../../albuns/album-capas.api", () => ({
   uploadCapas: vi.fn(),
+  removerCapa: vi.fn(),
+  definirCapaPrincipal: vi.fn(),
 }));
 
 vi.mock("../artista-foto.api", () => ({
@@ -71,9 +73,10 @@ describe("artistaDetalheFacade", () => {
     expect(state.albums).toHaveLength(1);
   });
 
-  it("uploads cover when saving album with coverFile", async () => {
+  it("uploads cover when saving album with a new cover", async () => {
     const { criarAlbum } = await import("../../albuns/albuns.api");
     const { uploadCapas } = await import("../../albuns/album-capas.api");
+    const { definirCapaPrincipal } = await import("../../albuns/album-capas.api");
     const { artistaDetalheFacade } = await import("./artistaDetalhe.facade");
 
     vi.mocked(criarAlbum).mockResolvedValueOnce({
@@ -106,11 +109,24 @@ describe("artistaDetalheFacade", () => {
     const ok = await artistaDetalheFacade.saveAlbum(10, {
       nome: "Novo Album",
       generoIds: [],
-      coverFile: file,
+      capas: [
+        {
+          localId: "new-1",
+          file,
+          previewUrl: "data:image/png;base64,abc",
+          fileName: "cover.png",
+          contentType: "image/png",
+          sizeBytes: 10,
+          principal: true,
+          source: "new",
+        },
+      ],
+      removedCapaIds: [],
     });
 
     expect(ok).toBe(true);
     expect(uploadCapas).toHaveBeenCalledWith(33, [file]);
+    expect(definirCapaPrincipal).toHaveBeenCalledWith(33, 1);
     expect(buscarAlbunsSpy).toHaveBeenCalledWith(10, 0);
   });
 

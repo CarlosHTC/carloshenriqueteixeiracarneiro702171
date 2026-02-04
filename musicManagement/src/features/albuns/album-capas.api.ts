@@ -35,3 +35,7 @@ export async function listarCapas(albumId: number): Promise<AlbumCapaResponse[]>
 export async function removerCapa(albumId: number, capaId: number): Promise<void> {
     await http.delete(`/api/v1/albuns/${albumId}/capas/${capaId}`);
 }
+
+export async function definirCapaPrincipal(albumId: number, capaId: number): Promise<void> {
+    await http.patch(`/api/v1/albuns/${albumId}/capas/${capaId}/principal`);
+}

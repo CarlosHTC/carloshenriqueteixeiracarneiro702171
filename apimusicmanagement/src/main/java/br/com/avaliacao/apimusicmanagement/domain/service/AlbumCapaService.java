@@ -41,6 +41,8 @@ public class AlbumCapaService {
             return List.of();
         }
 
+        boolean jaTemPrincipal = albumCapaRepository.existsByAlbumIdAndPrincipalTrue(albumId);
+        boolean principalDefinida = false;
         List<AlbumCapaResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
@@ -56,6 +58,10 @@ public class AlbumCapaService {
                         safeName(file.getContentType()),
                         file.getSize()
                 );
+                if (!jaTemPrincipal && !principalDefinida) {
+                    capa.setPrincipal(true);
+                    principalDefinida = true;
+                }
                 album.adicionarCapa(capa);
 
                 AlbumCapa saved = albumCapaRepository.save(capa);
@@ -94,6 +100,24 @@ public class AlbumCapaService {
 
         albumCapaRepository.delete(capa);
         albumCapaStorage.delete(capa.getObjectKey());
+
+        if (capa.isPrincipal()) {
+            albumCapaRepository.findFirstByAlbumIdOrderByCreatedAtDesc(albumId)
+                    .ifPresent(restante -> {
+                        restante.setPrincipal(true);
+                        albumCapaRepository.save(restante);
+                    });
+        }
+    }
+
+    @Transactional
+    public void definirPrincipal(Long albumId, Long capaId) {
+        AlbumCapa capa = albumCapaRepository.findByIdAndAlbumId(capaId, albumId)
+                .orElseThrow(() -> new EntityNotFoundException("Capa nÃ£o encontrada: " + capaId + " (album " + albumId + ")"));
+
+        albumCapaRepository.clearPrincipalByAlbumId(albumId);
+        capa.setPrincipal(true);
+        albumCapaRepository.save(capa);
     }
 
     private AlbumCapaResponse toResponse(AlbumCapa capa, String url) {
