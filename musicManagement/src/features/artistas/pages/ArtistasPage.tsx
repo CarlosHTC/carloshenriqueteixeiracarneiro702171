@@ -236,48 +236,48 @@ export default function ArtistasPage() {
 
                 <div className="flex align-items-center gap-2 p-1">
                     <div className="p-1">
-                    <span
-                        style={{
-                            opacity: 0.75,
-                            fontSize: 13,
-                            padding: "6px 12px",
-                            borderRadius: 12,
-                            background: "rgba(255,255,255,.06)",
-                            whiteSpace: "nowrap",
-                        }}
-                    >
-                        {totalRecords} {totalRecords === 1 ? "artista" : "artistas"}
-                    </span>
+                        <span
+                            style={{
+                                opacity: 0.75,
+                                fontSize: 13,
+                                padding: "6px 12px",
+                                borderRadius: 12,
+                                background: "rgba(255,255,255,.06)",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {totalRecords} {totalRecords === 1 ? "artista" : "artistas"}
+                        </span>
                     </div>
 
-                <div style={{ borderRadius: 8, background: "rgba(255,255,255,.04)", padding: 2 }}>
+                    <div style={{ borderRadius: 8, background: "rgba(255,255,255,.04)", padding: 2 }}>
+                        <Button
+                            icon={viewMode === "grid" ? "pi pi-th-large" : "pi pi-list"}
+                            text
+                            size="small"
+                            onClick={() => artistasFacade.setViewMode(viewMode === "grid" ? "table" : "grid")}
+                            style={{
+                                background: viewMode === "grid" ? "rgba(255,255,255,.1)" : "transparent",
+                            }}
+                            tooltip={viewMode === "grid" ? "Visualização em grade" : "Visualização em tabela"}
+                            tooltipOptions={{ position: "bottom" }}
+                        />
+                    </div>
+
                     <Button
-                        icon={viewMode === "grid" ? "pi pi-th-large" : "pi pi-list"}
+                        icon={sortOrder === "asc" ? "pi pi-sort-alpha-down" : "pi pi-sort-alpha-up"}
                         text
                         size="small"
-                        onClick={() => artistasFacade.setViewMode(viewMode === "grid" ? "table" : "grid")}
-                        style={{
-                            background: viewMode === "grid" ? "rgba(255,255,255,.1)" : "transparent",
-                        }}
-                        tooltip={viewMode === "grid" ? "Visualização em grade" : "Visualização em tabela"}
+                        onClick={() => artistasFacade.setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                        tooltip={`Ordenar ${sortOrder === "asc" ? "A-Z" : "Z-A"}`}
                         tooltipOptions={{ position: "bottom" }}
                     />
-                </div>
-
-                <Button
-                    icon={sortOrder === "asc" ? "pi pi-sort-alpha-down" : "pi pi-sort-alpha-up"}
-                    text
-                    size="small"
-                    onClick={() => artistasFacade.setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                    tooltip={`Ordenar ${sortOrder === "asc" ? "A-Z" : "Z-A"}`}
-                    tooltipOptions={{ position: "bottom" }}
-                />
                 </div>
             </div>
 
             {!loading && totalRecords === 0 ? (
                 <div
-                    className="grid grid-column align-items-center justify-content-center"
+                    className="grid col-12 align-items-center justify-content-center"
                     style={{
                         padding: 64,
                         borderRadius: 14,
@@ -285,11 +285,13 @@ export default function ArtistasPage() {
                         background: "rgba(255,255,255,.02)",
                     }}
                 >
-                    <i className="pi pi-user" style={{ fontSize: 48, opacity: 0.4, marginBottom: 16 }} />
-                    <div className="font-semibold" style={{ fontSize: 18, marginBottom: 8 }}>
-                        Nenhum artista encontrado
+                    <div className="grid col-12 gap-2 align-items-center justify-content-center">
+                        <i className="pi pi-user" style={{ fontSize: 48, opacity: 0.4, marginBottom: 16 }} />
+                        <div className="font-semibold" style={{ fontSize: 18, marginBottom: 8 }}>
+                            Nenhum artista encontrado
+                        </div>
                     </div>
-                    <div style={{ opacity: 0.75, fontSize: 14, textAlign: "center" }}>
+                    <div className="grid col-12 align-items-center justify-content-center">
                         {search ? "Tente uma busca diferente." : "Cadastre seu primeiro artista para começar."}
                     </div>
                     {!search && (
@@ -303,7 +305,7 @@ export default function ArtistasPage() {
                     )}
                 </div>
             ) : viewMode === "grid" ? (
-                <div className="col-12 justify-content-center p-0">
+                <div className="col-12 justify-content-center p-0 mb-2">
                     <div
                         className="flex mt-2"
                         style={{

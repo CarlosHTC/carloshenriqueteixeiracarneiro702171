@@ -107,23 +107,46 @@ export default function ArtistaCard({ artista, onClick, onEdit, onDelete }: Arti
                     />
                 </div>
 
-                <div className="p-3 flex-1" style={{ display: "flex", flexDirection: "column" }}>
-                    <div
-                        className="font-semibold mb-1"
-                        style={{
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            fontSize: 14,
-                            lineHeight: "1.4",
-                        }}
-                        onClick={onClick}
-                    >
-                        {artista.nome}
-                    </div>
+                <div className="flex flex-column gap-2 p-3">
+                    <div className="flex align-items-start justify-content-between gap-2">
+                        <div className="flex-1" style={{ minWidth: 0 }}>
+                            <div
+                                className="font-semibold"
+                                style={{
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    fontSize: 14,
+                                    lineHeight: "1.4",
+                                }}
+                                onClick={onClick}
+                            >
+                                {artista.nome}
+                            </div>
 
-                    <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 8, lineHeight: "1.4" }}>
-                        {artista.tipo}
+                            <div style={{ opacity: 0.75, fontSize: 12, lineHeight: "1.4" }}>
+                                {artista.tipo}
+                            </div>
+                        </div>
+
+                        <div className="flex align-items-start justify-content-end">
+                            <Menu model={menuItems} popup ref={menuRef} />
+                            <Button
+                                icon="pi pi-ellipsis-v"
+                                rounded
+                                text
+                                severity="info"
+                                size="small"
+                                onClick={(e) => {
+                                    menuRef.current?.toggle(e);
+                                    e.stopPropagation();
+                                }}
+                                style={{
+                                    width: 32,
+                                    height: 32,
+                                }}
+                            />
+                        </div>
                     </div>
 
                     <div
@@ -131,7 +154,6 @@ export default function ArtistaCard({ artista, onClick, onEdit, onDelete }: Arti
                         style={{
                             opacity: 0.8,
                             fontSize: 13,
-                            marginTop: "auto",
                         }}
                     >
                         <i className="pi pi-disc" style={{ fontSize: 14 }} />
@@ -139,40 +161,6 @@ export default function ArtistaCard({ artista, onClick, onEdit, onDelete }: Arti
                             {artista.qtdAlbuns != null ? artista.qtdAlbuns : 0} {artista.qtdAlbuns === 1 ? "álbum" : "álbuns"}
                         </span>
                     </div>
-                </div>
-
-                <div
-                    className="absolute"
-                    style={{
-                        right: 8,
-                        top: 8,
-                        opacity: 1,
-                        transition: "opacity 0.2s ease",
-                    }}
-                    // onMouseEnter={(e) => {
-                    //     e.currentTarget.style.opacity = "1";
-                    // }}
-                    // onMouseLeave={(e) => {
-                        // e.currentTarget.style.opacity = "0";
-                    // }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <Menu model={menuItems} popup ref={menuRef} />
-                    <Button
-                        icon="pi pi-ellipsis-v"
-                        rounded
-                        text
-                        severity="info"
-                        size="small"
-                        onClick={(e) => {
-                            menuRef.current?.toggle(e);
-                            e.stopPropagation();
-                        }}
-                        style={{
-                            width: 32,
-                            height: 32,
-                        }}
-                    />
                 </div>
             </div>
         </div>
