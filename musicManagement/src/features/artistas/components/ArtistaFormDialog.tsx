@@ -133,11 +133,12 @@ export default function ArtistaFormDialog({
 
     const footer = (
         <div className="flex justify-content-end gap-2">
-            <Button label="Cancelar" icon="pi pi-times" severity="secondary" onClick={onHide} />
+            <Button label="Cancelar" icon="pi pi-times" severity="danger" onClick={onHide} />
             <Button
                 label={isEditing ? "Salvar Alterações" : "Cadastrar Artista"}
                 onClick={handleSubmit}
                 disabled={!nome || !tipo}
+                severity="success"
             />
         </div>
     );

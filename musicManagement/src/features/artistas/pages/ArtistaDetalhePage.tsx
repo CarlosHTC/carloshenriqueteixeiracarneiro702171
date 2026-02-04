@@ -7,6 +7,7 @@ import { Paginator } from "primereact/paginator";
 
 import type { IArtista } from "../../../shared/types/IArtista";
 import type { IAlbumComCapa } from "../../../shared/types/IAlbum";
+import type { AlbumCapaDraft } from "../../albuns/types";
 import AlbumCard from "../../albuns/components/AlbumCard";
 import AlbumFormDialog from "../../albuns/components/AlbumFormDialog";
 import ArtistaFormDialog from "../components/ArtistaFormDialog";
@@ -99,7 +100,7 @@ export default function ArtistaDetalhePage() {
 
   async function handleSaveAlbum(
     artistaId: number,
-    data: { id?: number; nome: string; generoIds: number[]; coverFile?: File | null; coverPreview?: string }
+    data: { id?: number; nome: string; generoIds: number[]; capas: AlbumCapaDraft[]; removedCapaIds: number[] }
   ) {
     const ok = await artistaDetalheFacade.saveAlbum(artistaId, data);
     if (ok) {
@@ -147,6 +148,8 @@ export default function ArtistaDetalhePage() {
       accept: async () => {
         const ok = await artistaDetalheFacade.deleteArtista();
         if (ok) {
+          await artistasFacade.reloadFirstPage();
+          artistasFacade.setSelectedArtista(null);
           navigate("/artistas");
         }
       },
@@ -307,11 +310,11 @@ export default function ArtistaDetalhePage() {
                 label="Adicionar Álbum"
                 onClick={openNewAlbum}
                 size="small"
+                severity="info"
               />
               <Button
                 icon="pi pi-pencil"
                 label="Editar Artista"
-                severity="secondary"
                 outlined
                 onClick={openEditArtista}
                 size="small"

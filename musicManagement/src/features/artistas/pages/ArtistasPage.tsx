@@ -370,7 +370,7 @@ export default function ArtistasPage() {
                 closeIcon="pi pi-times"
                 footer={
                     <div className="flex justify-content-end gap-2">
-                        <Button label="Limpar" severity="secondary" onClick={clearFilters} />
+                        <Button label="Limpar" severity="warning" onClick={clearFilters} />
                         <Button label="Aplicar" onClick={applyFilters} />
                     </div>
                 }

@@ -174,7 +174,7 @@ export default function AlbumCard({ album, onEdit, onDelete }: AlbumCardProps) {
                     icon="pi pi-ellipsis-v"
                     rounded
                     text
-                    severity="secondary"
+                    severity="info"
                     size="small"
                     onClick={(e: any) => {
                         menuRef.current?.toggle(e);

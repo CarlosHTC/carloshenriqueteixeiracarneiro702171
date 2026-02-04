@@ -129,7 +129,7 @@ export default function AppLayout() {
             <Button
                 label="Sair"
                 icon="pi pi-sign-out"
-                severity="secondary"
+                severity="danger"
                 outlined
                 onClick={() => {
                     authService.logout();

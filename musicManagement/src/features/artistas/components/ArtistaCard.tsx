@@ -162,7 +162,7 @@ export default function ArtistaCard({ artista, onClick, onEdit, onDelete }: Arti
                         icon="pi pi-ellipsis-v"
                         rounded
                         text
-                        severity="secondary"
+                        severity="info"
                         size="small"
                         onClick={(e) => {
                             menuRef.current?.toggle(e);
