@@ -158,11 +158,28 @@ O front-end (React + TypeScript) consome a API REST de forma autenticada, com **
 
 ## ✅ Testes
 
-* **Testes unitários (Service):** JUnit 5 + Mockito
+### Pré-requisitos para testes
+
+* **Java 21** (mesma versão do projeto)
+* **Maven** (ou use o `./mvnw`)
+* **Node.js 20+** e **npm**
+
+### Back-end
+
+* **Testes unitários (Service):** JUnit 5 + Mockito  
 * **Testes de Controller:** WebMvcTest + MockMvc
 
 ```bash
-mvn test
+cd apimusicmanagement
+./mvnw test
+```
+
+### Front-end
+
+```bash
+cd musicManagement
+npm ci
+npm test
 ```
 
 ---
@@ -174,7 +191,15 @@ mvn test
 * Docker
 * Docker Compose
 
-### Subir a aplicação
+### Preparação do ambiente (limpeza recomendada)
+
+> **Recomendado** antes de subir o ambiente para garantir um build limpo e evitar conflitos de volume/containers antigos.
+
+```bash
+docker compose down --rmi local -v --remove-orphans
+```
+
+### Subir a aplicação (ambiente limpo)
 
 ```bash
 docker compose up --build
