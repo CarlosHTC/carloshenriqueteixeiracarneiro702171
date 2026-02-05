@@ -103,18 +103,39 @@ export default function AlbumCard({ album, onEdit, onDelete }: AlbumCardProps) {
                 />
             </div>
 
-            <div className="p-3">
-                <div
-                    className="font-semibold mb-2"
-                    style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        fontSize: 14,
-                        lineHeight: "1.4",
-                    }}
-                >
-                    {album.nome}
+            <div className="flex flex-column gap-2 p-3">
+                <div className="flex align-items-start justify-content-between gap-2">
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                        <div
+                            className="font-semibold"
+                            style={{
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                fontSize: 14,
+                                lineHeight: "1.4",
+                            }}
+                        >
+                            {album.nome}
+                        </div>
+                    </div>
+                    <div className="flex align-items-start justify-content-end">
+                        <Menu model={menuItems} popup ref={menuRef} />
+                        <Button
+                            icon="pi pi-ellipsis-v"
+                            rounded
+                            text
+                            severity="info"
+                            size="small"
+                            onClick={(e: any) => {
+                                menuRef.current?.toggle(e);
+                            }}
+                            style={{
+                                width: 32,
+                                height: 32,
+                            }}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex align-items-center gap-3 text-xs" style={{ opacity: 0.8, marginBottom: 8 }}>
@@ -152,38 +173,6 @@ export default function AlbumCard({ album, onEdit, onDelete }: AlbumCardProps) {
                         )}
                     </div>
                 )}
-            </div>
-
-            <div
-                className="absolute"
-                style={{
-                    right: 8,
-                    top: 8,
-                    opacity: 1,
-                    transition: "opacity 0.2s ease",
-                }}
-                // onMouseEnter={(e) => {
-                //     e.currentTarget.style.opacity = "1";
-                // }}
-                // onMouseLeave={(e) => {
-                //     e.currentTarget.style.opacity = "0";
-                // }}
-            >
-                <Menu model={menuItems} popup ref={menuRef} />
-                <Button
-                    icon="pi pi-ellipsis-v"
-                    rounded
-                    text
-                    severity="info"
-                    size="small"
-                    onClick={(e: any) => {
-                        menuRef.current?.toggle(e);
-                    }}
-                    style={{
-                        width: 32,
-                        height: 32,
-                    }}
-                />
             </div>
         </div>
     );
