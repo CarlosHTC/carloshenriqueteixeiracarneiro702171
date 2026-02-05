@@ -156,6 +156,28 @@ O front-end (React + TypeScript) consome a API REST de forma autenticada, com **
 
 ---
 
+## 🗄️ MinIO (Storage S3)
+
+### Credenciais de acesso
+
+As credenciais padrão do MinIO são definidas no arquivo `.env` usado pelo `docker-compose`:
+
+* **Usuário (MINIO_ROOT_USER):** `minioadmin`
+* **Senha (MINIO_ROOT_PASSWORD):** `minioadmin`
+
+O console administrativo fica disponível em: [http://localhost:9001](http://localhost:9001).
+
+### Buckets criados e uso
+
+Durante a inicialização do ambiente, o serviço `minio-init` cria automaticamente os buckets abaixo:
+
+* **`album-images`**: armazenamento das **capas de álbuns** enviadas pela API (`/api/v1/albuns/{albumId}/capas`).
+* **`artist-images`**: armazenamento das **fotos de artistas** enviadas pela API (`/api/v1/artistas/{artistaId}/foto`).
+
+Esses buckets são referenciados nas propriedades da aplicação (`minio.bucket` e `minio.artist-bucket`) para manter o upload e a recuperação de imagens organizados por domínio.
+
+---
+
 ## ✅ Testes
 
 ### Pré-requisitos para testes
