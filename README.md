@@ -195,8 +195,16 @@ npm test
 
 > **Recomendado** antes de subir o ambiente para garantir um build limpo e evitar conflitos de volume/containers antigos.
 
+### Parar todos os containers em execução
+
 ```bash
-docker compose down --rmi local -v --remove-orphans
+docker rmi -f ${docker ps -aq)
+```
+
+### Limpar todos os containers e volumes não utilizados
+
+```bash
+docker system prune -a --volumes -f
 ```
 
 ### Subir a aplicação (ambiente limpo)
@@ -207,11 +215,11 @@ docker compose up --build
 
 ### Serviços disponíveis
 
-* API: `http://localhost:8083`
-* Swagger UI: `http://localhost:8083/swagger`
-* Health Check: `http://localhost:8083/actuator/health`
-* MinIO Console: `http://localhost:9001`
-* Front (Nginx): `http://localhost:5173`
+* API: [http://localhost:8083](http://localhost:8083)
+* Swagger UI: [http://localhost:8083/swagger](http://localhost:8083/swagger)
+* Health Check: [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health)
+* MinIO Console: [http://localhost:9001](http://localhost:9001)
+* Front (Nginx): [http://localhost:5173](http://localhost:5173)
 
 ### Configuração do Front-end
 
