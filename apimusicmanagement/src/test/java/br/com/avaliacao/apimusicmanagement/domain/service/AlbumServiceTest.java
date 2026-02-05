@@ -1,6 +1,6 @@
 package br.com.avaliacao.apimusicmanagement.domain.service;
 
-import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumCapaPrincipalResponse;
+import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumCapaResponse;
 import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumListResponse;
 import br.com.avaliacao.apimusicmanagement.api.v1.mapper.AlbumMapper;
 import br.com.avaliacao.apimusicmanagement.domain.exception.ResourceNotFoundException;
@@ -48,7 +48,7 @@ class AlbumServiceTest {
     @InjectMocks AlbumService albumService;
 
     @Test
-    void listar_deveRetornarCapaPrincipalMaisRecentePorAlbum() {
+    void listar_deveRetornarCapasPorAlbum() {
         Pageable pageable = PageRequest.of(0, 10);
 
         Album album = new Album("Harakiri");
@@ -67,7 +67,7 @@ class AlbumServiceTest {
 
         ReflectionTestUtils.setField(capa, "id", 99L);
 
-        when(albumCapaRepository.findPrincipaisByAlbumIds(Set.of(10L)))
+        when(albumCapaRepository.findByAlbumIdInOrderByUpdatedAtDesc(Set.of(10L)))
                 .thenReturn(List.of(capa));
 
         when(minioProperties.getPresignExpirationMinutes()).thenReturn(30);
@@ -75,15 +75,17 @@ class AlbumServiceTest {
                 .thenReturn("http://presigned");
 
         AlbumListResponse mapped = mock(AlbumListResponse.class);
-        when(albumMapper.toListResponse(eq(album), any(AlbumCapaPrincipalResponse.class)))
+        when(albumMapper.toListResponse(eq(album), anyList()))
                 .thenReturn(mapped);
 
         Page<AlbumListResponse> result = albumService.listar(null, pageable);
 
         assertEquals(1, result.getTotalElements());
-        verify(albumCapaRepository).findPrincipaisByAlbumIds(Set.of(10L));
+        verify(albumCapaRepository).findByAlbumIdInOrderByUpdatedAtDesc(Set.of(10L));
         verify(albumMapper).toListResponse(eq(album),
-                argThat(c -> c != null && "http://presigned".equals(c.url())));
+                argThat((List<AlbumCapaResponse> capas) ->
+                        capas != null && !capas.isEmpty() && "http://presigned".equals(capas.get(0).url())
+                ));
     }
 
     @Test

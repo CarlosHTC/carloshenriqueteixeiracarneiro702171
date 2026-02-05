@@ -1,7 +1,7 @@
 import type { IAuditableEntity } from "./IAuditableEntity";
 import type { IFaixa } from "./IFaixa";
 import type { IGenero } from "./IGenero";
-import type { IAlbumCapa, ICapaPrincipal } from "./IAlbumCapa";
+import type { IAlbumCapa, IAlbumCapaComUrl } from "./IAlbumCapa";
 
 export interface IAlbum extends IAuditableEntity {
     id: number;
@@ -18,5 +18,5 @@ export interface IAlbumComCapa extends IAuditableEntity {
     artista: number;
     faixas: Array<IFaixa>;
     generos: Array<IGenero>;
-    capaPrincipal: ICapaPrincipal
+    capas: Array<IAlbumCapaComUrl>;
 }

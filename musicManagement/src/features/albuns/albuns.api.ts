@@ -1,7 +1,6 @@
 import { http } from "../../services/http/axios";
 import type { IAlbum } from "../../shared/types";
 import type { IAlbumComCapa } from "../../shared/types/IAlbum";
-import type { ICapaPrincipal } from "../../shared/types/IAlbumCapa";
 
 export type CreateAlbumRequest = {
     nome: string;
@@ -40,9 +39,18 @@ type AlbumComCapaResponseBackend = {
     nome: string;
     artista: ArtistaSummaryResponse;
     generos: GeneroSummaryResponse[] | Set<GeneroSummaryResponse>;
-    capaPrincipal: ICapaPrincipal;
+    capas: AlbumCapaResponseBackend[];
     createdAt: string;
     updatedAt: string;
+};
+
+type AlbumCapaResponseBackend = {
+    id: number;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    url: string;
+    principal: boolean;
 };
 
 type SpringPage<T> = {
@@ -146,7 +154,7 @@ function adaptAlbumComCapaResponse(backend: AlbumComCapaResponseBackend): IAlbum
             version: 0,
         })),
         faixas: [], 
-        capaPrincipal: backend.capaPrincipal,
+        capas: Array.isArray(backend.capas) ? backend.capas : [],
         createdAt: backend.createdAt,
         updatedAt: backend.updatedAt,
         version: 0,

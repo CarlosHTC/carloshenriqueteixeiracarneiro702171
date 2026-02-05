@@ -5,14 +5,15 @@ import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { MultiSelect } from "primereact/multiselect";
 import { FileUpload } from "primereact/fileupload";
-import type { IAlbum, IArtista, IGenero } from "../../../shared/types";
-import { listarGeneros } from "../../generos/generos.api";
-import { listarCapas } from "../album-capas.api";
+import type { IArtista, IGenero } from "../../../shared/types";
+import type { IAlbumComCapa } from "../../../shared/types/IAlbum";
+import { useObservable } from "../../../hooks/useObservable";
+import { generosFacade } from "../../generos/generos.facade";
 import type { AlbumCapaDraft } from "../types";
 
 export interface AlbumFormDialogProps {
     visible: boolean;
-    album?: IAlbum | null;
+    album?: IAlbumComCapa | null;
     artista?: IArtista | null;
     artistas?: IArtista[];
     generos?: IGenero[];
@@ -58,9 +59,6 @@ function showSizeLimitToast() {
     );
 }
 
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 75 }, (_, i) => currentYear - i);
-
 function createLocalId() {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
         return crypto.randomUUID();
@@ -96,12 +94,11 @@ export default function AlbumFormDialog({
 
     const [selectedArtistaId, setSelectedArtistaId] = useState<number | null>(null);
     const [nome, setNome] = useState("");
-    const [anoLancamento, setAnoLancamento] = useState<number | null>(null);
     const [generoIds, setGeneroIds] = useState<number[]>([]);
     const [capas, setCapas] = useState<AlbumCapaDraft[]>([]);
     const [initialCapaIds, setInitialCapaIds] = useState<number[]>([]);
-    const [listaGeneros, setListaGeneros] = useState<IGenero[]>([]);
     const fileUploadRef = useRef<FileUpload>(null);
+    const generosState = useObservable(generosFacade.state$, generosFacade.getSnapshot());
 
     useEffect(() => {
         if (!visible) {
@@ -111,63 +108,40 @@ export default function AlbumFormDialog({
 
         setSelectedArtistaId(artista?.id ?? album?.artista ?? null);
         setNome(album?.nome ?? "");
-        setAnoLancamento(null);
         setGeneroIds(album?.generos?.map((g) => g.id) ?? []);
         if (!album?.id) {
             setCapas([]);
             setInitialCapaIds([]);
             return;
         }
-
-        let cancelled = false;
-        const loadCapas = async () => {
-            try {
-                const data = await listarCapas(album.id);
-                if (cancelled) return;
-                const draft = data.map((c) => ({
-                    localId: `existing-${c.id}`,
-                    id: c.id,
-                    previewUrl: c.url,
-                    fileName: c.fileName,
-                    contentType: c.contentType,
-                    sizeBytes: c.sizeBytes,
-                    principal: c.principal,
-                    source: "existing" as const,
-                }));
-                const hasPrincipal = draft.some((c) => c.principal);
-                if (!hasPrincipal && draft.length > 0) {
-                    draft[0].principal = true;
-                }
-                setCapas(draft);
-                setInitialCapaIds(draft.map((c) => c.id!).filter((id) => Number.isFinite(id)));
-            } catch {
-                if (!cancelled) {
-                    setCapas([]);
-                    setInitialCapaIds([]);
-                }
-            }
-        };
-        void loadCapas();
-        return () => {
-            cancelled = true;
-        };
+        const data = Array.isArray(album.capas) ? album.capas : [];
+        const draft = data.map((c) => ({
+            localId: `existing-${c.id}`,
+            id: c.id,
+            previewUrl: c.url,
+            fileName: c.fileName,
+            contentType: c.contentType,
+            sizeBytes: c.sizeBytes,
+            principal: c.principal,
+            source: "existing" as const,
+        }));
+        const hasPrincipal = draft.some((c) => c.principal);
+        if (!hasPrincipal && draft.length > 0) {
+            draft[0].principal = true;
+        }
+        setCapas(draft);
+        setInitialCapaIds(draft.map((c) => c.id!).filter((id) => Number.isFinite(id)));
     }, [visible, album, artista]);
-
-    async function listaGenero() {
-        const generosData = await listarGeneros();
-        setListaGeneros(generosData);
-    }
 
     useEffect(() => {
         if (visible) {
-            listaGenero();
+            generosFacade.ensureLoaded();
         }
     }, [visible]);
 
     const resetForm = () => {
         if (!album) {
             setNome("");
-            setAnoLancamento(null);
             setGeneroIds([]);
             setCapas([]);
             setInitialCapaIds([]);
@@ -268,7 +242,7 @@ export default function AlbumFormDialog({
 
     const handleSubmit = () => {
         const artistaId = artista?.id || selectedArtistaId;
-        if (!nome || !artistaId) {
+        if (!nome || generoIds.length === 0 || !artistaId) {
             return;
         }
 
@@ -307,7 +281,7 @@ export default function AlbumFormDialog({
             });
         };
 
-        add(listaGeneros);
+        add(generosState.generos ?? []);
         add(generos);
         return merged;
     })();
@@ -315,11 +289,6 @@ export default function AlbumFormDialog({
     const generoOptions = generoSource.map((g) => ({
         label: g.nome,
         value: g.id,
-    }));
-
-    const yearOptions = years.map((year) => ({
-        label: year.toString(),
-        value: year,
     }));
 
     const totalCapasBytes = capas.reduce(
@@ -334,7 +303,7 @@ export default function AlbumFormDialog({
             <Button
                 label={isEditing ? "Salvar Alterações" : "Cadastrar Álbum"}
                 onClick={handleSubmit}
-                disabled={!nome || !generoIds.length || !anoLancamento || (!artista && !selectedArtistaId)}
+                disabled={!nome || generoIds.length === 0 || (!artista && !selectedArtistaId)}
                 severity="success"
             />
         </div>
@@ -509,24 +478,7 @@ export default function AlbumFormDialog({
                 </div>
 
                 <div className="grid">
-                    <div className="col-6 flex flex-column gap-2">
-                        <label htmlFor="ano" className="text-sm font-medium">
-                            Ano de Lançamento
-                        </label>
-                        <Dropdown
-                            id="ano"
-                            value={anoLancamento}
-                            options={yearOptions}
-                            optionLabel="label"
-                            optionValue="value"
-                            onChange={(e) => setAnoLancamento(e.value)}
-                            placeholder="Ano"
-                            className="w-full"
-                            required
-                        />
-                    </div>
-
-                    <div className="col-6 flex flex-column gap-2">
+                    <div className="col-12 flex flex-column gap-2">
                         <label htmlFor="genero" className="text-sm font-medium">
                             Gênero{generoIds.length > 1 ? "s" : ""}
                         </label>
@@ -550,3 +502,4 @@ export default function AlbumFormDialog({
         </Dialog>
     );
 }
+

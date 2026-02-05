@@ -48,13 +48,16 @@ describe("artistaDetalheFacade", () => {
           artista: 10,
           generos: [],
           faixas: [],
-          capaPrincipal: {
-            id: 1,
-            fileName: "cover.png",
-            contentType: "image/png",
-            sizeBytes: 10,
-            url: "http://example/cover.png",
-          },
+          capas: [
+            {
+              id: 1,
+              fileName: "cover.png",
+              contentType: "image/png",
+              sizeBytes: 10,
+              principal: true,
+              url: "http://example/cover.png",
+            },
+          ],
           createdAt: "",
           updatedAt: "",
           version: 0,

@@ -30,7 +30,7 @@ export default function AlbumCard({ album, onEdit, onDelete }: AlbumCardProps) {
         },
     ];
 
-    const capaPrincipal = album.capaPrincipal;
+    const capaPrincipal = album.capas.find((capa) => capa.principal) ?? album.capas[0];
 
     return (
         <div

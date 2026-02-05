@@ -30,14 +30,14 @@ public interface AlbumMapper {
     @Mapping(target = "updatedAt", expression = "java(entity.getUpdatedAt())")
     AlbumResponse toResponse(Album entity);
 
-    default AlbumListResponse toListResponse(Album entity, AlbumCapaPrincipalResponse capaPrincipal) {
+    default AlbumListResponse toListResponse(Album entity, java.util.List<AlbumCapaResponse> capas) {
         if (entity == null) return null;
         return new AlbumListResponse(
                 entity.getId(),
                 entity.getNome(),
                 toArtistaSummary(entity.getArtista()),
                 toGeneroSummaries(entity.getGeneros()),
-                capaPrincipal,
+                capas,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

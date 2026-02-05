@@ -1,6 +1,6 @@
 package br.com.avaliacao.apimusicmanagement.domain.service;
 
-import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumCapaPrincipalResponse;
+import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumCapaResponse;
 import br.com.avaliacao.apimusicmanagement.api.v1.dto.response.AlbumListResponse;
 import br.com.avaliacao.apimusicmanagement.api.v1.mapper.AlbumMapper;
 import br.com.avaliacao.apimusicmanagement.domain.event.AlbumCreatedEvent;
@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,23 +63,11 @@ public class AlbumService {
                 albumRepository.findByNomeContainingIgnoreCase(nome.trim(), pageable);
 
         Set<Long> albumIds = albuns.getContent().stream().map(Album::getId).collect(Collectors.toSet());
-        Map<Long, AlbumCapa> capaPrincipalPorAlbum = buscarUltimasCapas(albumIds);
         Duration duration = Duration.ofMinutes(minioProperties.getPresignExpirationMinutes());
+        Map<Long, List<AlbumCapaResponse>> capasPorAlbum = buscarCapas(albumIds, duration);
 
         return albuns.map(album -> {
-            AlbumCapa capaPrincipal = capaPrincipalPorAlbum.get(album.getId());
-            AlbumCapaPrincipalResponse capaResponse = null;
-            if (capaPrincipal != null) {
-                String url = albumCapaStorage.presignGetUrl(capaPrincipal.getObjectKey(), duration);
-                capaResponse = new AlbumCapaPrincipalResponse(
-                        capaPrincipal.getId(),
-                        capaPrincipal.getFileName(),
-                        capaPrincipal.getContentType(),
-                        capaPrincipal.getSizeBytes(),
-                        url
-                );
-            }
-            return albumMapper.toListResponse(album, capaResponse);
+            return albumMapper.toListResponse(album, capasPorAlbum.getOrDefault(album.getId(), List.of()));
         });
     }
 
@@ -124,12 +111,26 @@ public class AlbumService {
         albumRepository.delete(existente);
     }
 
-    private Map<Long, AlbumCapa> buscarUltimasCapas(Set<Long> albumIds) {
+    private Map<Long, List<AlbumCapaResponse>> buscarCapas(Set<Long> albumIds, Duration duration) {
         if (albumIds == null || albumIds.isEmpty()) {
             return Map.of();
         }
-        return albumCapaRepository.findPrincipaisByAlbumIds(albumIds).stream()
-                .collect(Collectors.toMap(capa -> capa.getAlbum().getId(), Function.identity(), (a, b) -> a));
+        return albumCapaRepository.findByAlbumIdInOrderByUpdatedAtDesc(albumIds).stream()
+                .collect(Collectors.groupingBy(
+                        capa -> capa.getAlbum().getId(),
+                        Collectors.mapping(capa -> toResponse(capa, duration), Collectors.toList())
+                ));
+    }
+
+    private AlbumCapaResponse toResponse(AlbumCapa capa, Duration duration) {
+        return new AlbumCapaResponse(
+                capa.getId(),
+                capa.getFileName(),
+                capa.getContentType(),
+                capa.getSizeBytes(),
+                capa.isPrincipal(),
+                albumCapaStorage.presignGetUrl(capa.getObjectKey(), duration)
+        );
     }
 
     private Set<Genero> resolverGeneros(Set<Long> generoIds) {
@@ -147,23 +148,11 @@ public class AlbumService {
         Page<Album> albuns = albumRepository.findByArtistaId(artistaId, pageable);
 
         Set<Long> albumIds = albuns.getContent().stream().map(Album::getId).collect(Collectors.toSet());
-        Map<Long, AlbumCapa> capaPrincipalPorAlbum = buscarUltimasCapas(albumIds);
         Duration duration = Duration.ofMinutes(minioProperties.getPresignExpirationMinutes());
+        Map<Long, List<AlbumCapaResponse>> capasPorAlbum = buscarCapas(albumIds, duration);
 
         return albuns.map(album -> {
-            AlbumCapa capaPrincipal = capaPrincipalPorAlbum.get(album.getId());
-            AlbumCapaPrincipalResponse capaResponse = null;
-            if (capaPrincipal != null) {
-                String url = albumCapaStorage.presignGetUrl(capaPrincipal.getObjectKey(), duration);
-                capaResponse = new AlbumCapaPrincipalResponse(
-                        capaPrincipal.getId(),
-                        capaPrincipal.getFileName(),
-                        capaPrincipal.getContentType(),
-                        capaPrincipal.getSizeBytes(),
-                        url
-                );
-            }
-            return albumMapper.toListResponse(album, capaResponse);
+            return albumMapper.toListResponse(album, capasPorAlbum.getOrDefault(album.getId(), List.of()));
         });
     }
 }

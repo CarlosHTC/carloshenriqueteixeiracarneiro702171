@@ -84,7 +84,7 @@ export default function ArtistaDetalhePage() {
   }
 
   function openEditAlbum(album: IAlbumComCapa) {
-    artistaDetalheFacade.buscarAlbum(album.id);
+    artistaDetalheFacade.setAlbumSelecionado(album);
     params.set("dialog", "editar-album");
     setParams(params, { replace: true });
   }

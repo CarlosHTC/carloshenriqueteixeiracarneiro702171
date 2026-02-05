@@ -51,7 +51,7 @@ class AlbumControllerV1Test {
     void listar_paginado_semFiltro() throws Exception {
         Pageable pageable = PageRequest.of(0, 10);
         AlbumListResponse resp = new AlbumListResponse(
-                1L, "Harakiri", null, null, null, null, null
+                1L, "Harakiri", null, null, List.of(), null, null
         );
 
         when(albumService.listar(isNull(), any(Pageable.class)))

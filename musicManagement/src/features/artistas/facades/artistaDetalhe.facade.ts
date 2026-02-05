@@ -3,7 +3,7 @@ import type { IArtista } from "../../../shared/types/IArtista";
 import type { IAlbum, IAlbumComCapa } from "../../../shared/types/IAlbum";
 import type { AlbumCapaDraft } from "../../albuns/types";
 import { atualizarArtista, buscarArtistaPorId, removerArtista } from "../artistas.api";
-import { buscarAlbumPorId, atualizarAlbum, criarAlbum, listarAlbunsPorArtista, removerAlbum } from "../../albuns/albuns.api";
+import { atualizarAlbum, criarAlbum, listarAlbunsPorArtista, removerAlbum } from "../../albuns/albuns.api";
 import { definirCapaPrincipal, removerCapa, uploadCapas } from "../../albuns/album-capas.api";
 import { uploadFotoArtista } from "../artista-foto.api";
 
@@ -31,7 +31,7 @@ class ArtistaDetalheFacade {
     private readonly _state$ = new BehaviorSubject<ArtistaDetalheState>(initialState);
     readonly state$ = this._state$.asObservable();
 
-    private readonly _albumSelecionado$ = new BehaviorSubject<IAlbum | null>(null);
+    private readonly _albumSelecionado$ = new BehaviorSubject<IAlbumComCapa | null>(null);
     readonly albumSelecionado$ = this._albumSelecionado$.asObservable();
 
     private artistaId: number | null = null;
@@ -87,7 +87,7 @@ class ArtistaDetalheFacade {
         this.patch({ error: "" });
     }
 
-    setAlbumSelecionado(album: IAlbum | null) {
+    setAlbumSelecionado(album: IAlbumComCapa | null) {
         this._albumSelecionado$.next(album);
     }
 
@@ -124,20 +124,6 @@ class ArtistaDetalheFacade {
             });
         } catch {
             this.patch({ error: "Falha ao carregar dados.", albums: [] });
-        } finally {
-            this.patch({ loading: false });
-        }
-    }
-
-    async buscarAlbum(id: number) {
-        this.clearError();
-        this.patch({ loading: true });
-        try {
-            const albumData = await buscarAlbumPorId(id);
-            this._albumSelecionado$.next(albumData);
-        } catch {
-            this.patch({ error: "Falha ao carregar dados." });
-            this._albumSelecionado$.next(null);
         } finally {
             this.patch({ loading: false });
         }

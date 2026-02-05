@@ -17,3 +17,12 @@ export interface ICapaPrincipal {
     sizeBytes: number;
     url: string;
 }
+
+export interface IAlbumCapaComUrl {
+    id: number;
+    fileName: string;
+    contentType: string;
+    sizeBytes: number;
+    url: string;
+    principal: boolean;
+}
