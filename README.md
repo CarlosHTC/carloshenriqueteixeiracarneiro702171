@@ -201,7 +201,7 @@ npm test
 docker rmi -f ${docker ps -aq)
 ```
 
-### Limpar todos os containers e volumes não utilizados
+### Limpar todos os containers e imagens não utilizados
 
 ```bash
 docker system prune -a --volumes -f
