@@ -220,7 +220,7 @@ npm test
 ### Parar todos os containers em execução
 
 ```bash
-docker rmi -f ${docker ps -aq)
+docker rm -f ${docker ps -aq)
 ```
 
 ### Limpar todos os containers e imagens não utilizados
